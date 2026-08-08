@@ -5,37 +5,21 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from flask import Flask, jsonify, request, render_template_string
+from rag_engine import rag_engine
 
 app = Flask(__name__)
 handler = app
 
 @app.route("/", methods=["GET", "POST"])
 def home():
-    query = request.args.get("q", "India's economy")
+    query = request.args.get("q", "gold rate today")
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
         query = data.get("query", query)
 
-    try:
-        from rag_engine import rag_engine
-        result = rag_engine.query(query)
-        answer_html = result["answer"]
-        chunks_count = len(rag_engine.chunks) if rag_engine.chunks else 7497
-    except Exception as e:
-        answer_html = f"""
-        <div style="background: #111827; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 22px;">
-            <h3 style="color: #ff5500; font-family: 'Lora', serif; margin-top:0;">🇮🇳 IndiaDigest Executive Intelligence</h3>
-            <p style="color: #cbd5e1;">Synthesized real-time intelligence for <b>"{query}"</b>:</p>
-            <ul style="color: #e2e8f0; line-height: 1.6;">
-                <li><span style="color: #ff5500;">[News]</span> <b>Key market & news developments indexed for {query}.</b></li>
-                <li><span style="color: #38bdf8;">[Web]</span> <b>Social and web signals tracked across Google News, Reddit & YouTube.</b></li>
-            </ul>
-            <div style="background: rgba(255, 85, 0, 0.08); border-left: 3px solid #ff5500; padding: 10px 14px; border-radius: 6px; font-size: 0.86rem; color: #94a3b8; margin-top: 15px;">
-                💡 <b>Insight Takeaway:</b> Active updates indexed around <i>'{query}'</i>.
-            </div>
-        </div>
-        """
-        chunks_count = 7497
+    result = rag_engine.query(query)
+    answer_html = result["answer"]
+    chunks_count = len(rag_engine.chunks) if rag_engine.chunks else 7497
 
     html_page = f"""
     <!DOCTYPE html>
@@ -59,12 +43,18 @@ def home():
                 max-width: 900px;
                 width: 100%;
             }}
+            .header {{
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                margin-bottom: 25px;
+            }}
             .logo {{
                 font-family: 'Lora', serif;
-                font-size: 2.2rem;
+                font-size: 2.3rem;
                 font-weight: 700;
                 color: #ff5500;
-                margin-bottom: 2px;
+                margin: 0;
             }}
             .sublogo {{
                 font-size: 0.8rem;
@@ -72,12 +62,12 @@ def home():
                 color: #64748b;
                 letter-spacing: 1.2px;
                 text-transform: uppercase;
-                margin-bottom: 30px;
+                margin-top: 4px;
             }}
             .search-box {{
                 display: flex;
                 gap: 10px;
-                margin-bottom: 30px;
+                margin-bottom: 25px;
             }}
             input[type="text"] {{
                 flex: 1;
@@ -87,6 +77,10 @@ def home():
                 padding: 14px 18px;
                 color: #ffffff;
                 font-size: 1rem;
+                outline: none;
+            }}
+            input[type="text"]:focus {{
+                border-color: #ff5500;
             }}
             button {{
                 background: #ff5500;
@@ -95,25 +89,58 @@ def home():
                 border-radius: 10px;
                 padding: 14px 24px;
                 font-weight: 700;
+                font-size: 0.95rem;
                 cursor: pointer;
+                transition: background 0.2s;
+            }}
+            button:hover {{
+                background: #e04b00;
             }}
             .badge-bar {{
                 display: flex;
-                gap: 15px;
+                gap: 18px;
                 margin-bottom: 25px;
                 font-size: 0.82rem;
                 color: #94a3b8;
+                background: #111827;
+                padding: 12px 18px;
+                border-radius: 10px;
+                border: 1px solid rgba(255, 255, 255, 0.05);
             }}
             .badge-val {{
                 color: #ff5500;
                 font-weight: 700;
             }}
+            .suggested-chips {{
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+                margin-bottom: 25px;
+            }}
+            .chip {{
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                color: #cbd5e1;
+                padding: 6px 14px;
+                border-radius: 20px;
+                font-size: 0.82rem;
+                text-decoration: none;
+                transition: all 0.2s;
+            }}
+            .chip:hover {{
+                border-color: #ff5500;
+                color: #ff5500;
+            }}
         </style>
     </head>
     <body>
         <div class="container">
-            <div class="logo">IndiaDigest</div>
-            <div class="sublogo">AI News Intelligence Platform (Vercel Live)</div>
+            <div class="header">
+                <div>
+                    <div class="logo">IndiaDigest</div>
+                    <div class="sublogo">AI News Intelligence Platform</div>
+                </div>
+            </div>
 
             <div class="badge-bar">
                 <span>Chunks Indexed: <span class="badge-val">{chunks_count:,}</span></span>
@@ -122,9 +149,17 @@ def home():
             </div>
 
             <form class="search-box" method="GET" action="/">
-                <input type="text" name="q" value="{query}" placeholder="Ask anything about India (e.g. silver price, gold rate, economy)...">
+                <input type="text" name="q" value="{query}" placeholder="Ask anything about India (e.g. silver price, gold rate, new honda car)...">
                 <button type="submit">Search Intelligence</button>
             </form>
+
+            <div class="suggested-chips">
+                <a href="/?q=gold+rate+today" class="chip">💰 Gold Rate Today</a>
+                <a href="/?q=silver+price" class="chip">🥈 Silver Price</a>
+                <a href="/?q=new+honda+car" class="chip">🚗 New Honda Car</a>
+                <a href="/?q=platnium+price" class="chip">💎 Platinum Price</a>
+                <a href="/?q=India+economy" class="chip">📈 India Economy</a>
+            </div>
 
             <div class="result-area">
                 {answer_html}
@@ -139,11 +174,7 @@ def home():
 def api_query():
     data = request.get_json(silent=True) or {}
     q = data.get("query", "India")
-    try:
-        from rag_engine import rag_engine
-        res = rag_engine.query(q)
-    except Exception as e:
-        res = {"answer": f"Intelligence report for {q}", "error": str(e)}
+    res = rag_engine.query(q)
     return jsonify(res)
 
 if __name__ == "__main__":
