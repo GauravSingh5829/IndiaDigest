@@ -3,6 +3,7 @@ import glob
 import re
 import math
 import textwrap
+import tempfile
 import pandas as pd
 from collections import Counter
 from config import DATA_DIR
@@ -16,6 +17,11 @@ STOP_WORDS = {
     'give', 'find', 'recent', 'check', 'versus', 'vs', 'per', 'gram', 'kg', 'inr', 'usd',
     'new', 'best', 'top', 'buy', 'sell', 'details', 'info'
 }
+
+def get_writable_dir():
+    if os.path.exists(DATA_DIR) and os.access(DATA_DIR, os.W_OK):
+        return DATA_DIR
+    return tempfile.gettempdir()
 
 def extract_essential_subjects(raw_query):
     clean_q = normalize_query(raw_query)
@@ -101,8 +107,12 @@ class RAGEngine:
         self.source_counts = {"News": 0, "Reddit": 0, "YouTube": 0, "Web": 0}
         self.topic_counts = {}
 
-        pattern = os.path.join(DATA_DIR, "*.csv")
-        csv_files = [f for f in glob.glob(pattern) if not f.endswith("_sentiment.csv")]
+        search_dirs = [DATA_DIR, tempfile.gettempdir()]
+        csv_files = []
+        for sdir in search_dirs:
+            if os.path.exists(sdir):
+                pattern = os.path.join(sdir, "*.csv")
+                csv_files.extend([f for f in glob.glob(pattern) if not f.endswith("_sentiment.csv")])
 
         for filepath in csv_files:
             filename = os.path.basename(filepath)
@@ -163,14 +173,16 @@ class RAGEngine:
         if not results:
             return
 
-        df = pd.DataFrame(results)
-        today = pd.Timestamp.today().strftime("%Y-%m-%d")
-        clean_filename = re.sub(r'[^a-zA-Z0-9]', '_', clean_q)
-        filepath = os.path.join(DATA_DIR, f"news_{clean_filename}_{today}.csv")
-        df.to_csv(filepath, index=False)
-
-        # Re-index
-        self.build_index()
+        try:
+            df = pd.DataFrame(results)
+            today = pd.Timestamp.today().strftime("%Y-%m-%d")
+            clean_filename = re.sub(r'[^a-zA-Z0-9]', '_', clean_q)
+            target_dir = get_writable_dir()
+            filepath = os.path.join(target_dir, f"news_{clean_filename}_{today}.csv")
+            df.to_csv(filepath, index=False)
+            self.build_index()
+        except Exception as e:
+            print(f"[!] Save index note: {e}")
 
     def query(self, raw_query, filter_topic=None, filter_source=None, top_k=5):
         subjects, clean_q = extract_essential_subjects(raw_query)
@@ -195,7 +207,6 @@ class RAGEngine:
             chunk = self.chunks[idx]
             text = chunk['text']
 
-            # EXACT WORD BOUNDARY SUBJECT MATCHING: Chunk MUST contain exact subject word!
             if subjects:
                 matches_any = any(contains_word(s, text) or contains_word(s, chunk['topic']) for s in subjects)
                 if not matches_any:
@@ -224,13 +235,12 @@ class RAGEngine:
                 if len(retrieved) >= top_k:
                     break
 
-        # STRICT REJECTION: If still no chunks match the subject, DO NOT return irrelevant fallback chunks!
         if not retrieved:
             return {
                 "answer": textwrap.dedent(f"""
                 <div style="background: rgba(239, 68, 68, 0.08); border-left: 3px solid #ef4444; padding: 14px 18px; border-radius: 8px; color: #f87171;">
                 <b>No direct news updates found for '{clean_q}'.</b><br>
-                <span style="font-size: 0.88rem; color: #94a3b8;">Try refining your search terms or click <b>'Collect Fresh Data Now'</b> in the sidebar.</span>
+                <span style="font-size: 0.88rem; color: #94a3b8;">Try refining your search terms.</span>
                 </div>
                 """).strip(),
                 "retrieved_chunks": [],
@@ -275,7 +285,6 @@ Structure your answer into:
 
             items_html = "".join(bullet_items)
 
-            # FLUSH LEFT STRING (NO LEADING INDENTATION SPACES)
             llm_answer = textwrap.dedent(f"""
 <div style="font-family: 'Inter', sans-serif; background: #111827; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 22px; margin-bottom: 15px;">
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); padding-bottom: 10px;">
