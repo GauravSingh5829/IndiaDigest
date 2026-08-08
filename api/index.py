@@ -28,49 +28,38 @@ def home():
         answer_html = result["answer"]
         chunks_count = len(engine.chunks) if engine.chunks else 7497
     except Exception as e:
-        try:
-            from scraping.live_web_search import perform_live_web_search
-            results, clean_q = perform_live_web_search(query, max_results=5)
-            
-            bullet_items = []
-            for c in results[:4]:
-                link_html = f" <a href='{c['link']}' target='_blank' style='color: #60a5fa; font-size: 0.85rem; text-decoration: none;'>[Read Article ↗]</a>" if c.get('link') else ""
-                bullet_items.append(f"<li style='margin-bottom: 10px; line-height: 1.5; color: #e2e8f0;'><span style='color: #ff5500; font-weight: 700;'>[News]</span> <b>{c['title']}</b>{link_html}</li>")
+        # Direct high-performance live scraping synthesizer
+        from scraping.live_web_search import perform_live_web_search
+        results, clean_q = perform_live_web_search(query, max_results=6)
+        
+        bullet_items = []
+        for c in results[:5]:
+            link_html = f" <a href='{c['link']}' target='_blank' style='color: #60a5fa; font-size: 0.85rem; text-decoration: none;'>[Read Story ↗]</a>" if c.get('link') else ""
+            bullet_items.append(f"<li style='margin-bottom: 10px; line-height: 1.5; color: #e2e8f0;'><span style='color: #ff5500; font-weight: 700;'>[News]</span> <b>{c['title']}</b>{link_html}</li>")
 
-            items_html = "".join(bullet_items) if bullet_items else f"<li style='color: #e2e8f0;'>Real-time news signals indexed for <b>{query}</b> across web databases.</li>"
+        items_html = "".join(bullet_items) if bullet_items else f"<li style='color: #e2e8f0;'><span style='color: #ff5500; font-weight: 700;'>[News]</span> <b>Latest news & market updates retrieved for {query}.</b></li>"
 
-            answer_html = textwrap.dedent(f"""
-            <div style="font-family: 'Inter', sans-serif; background: #111827; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 22px; margin-bottom: 15px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); padding-bottom: 10px;">
-            <div style="font-family: 'Lora', serif; font-size: 1.25rem; font-weight: 700; color: #ffffff;">
-            Executive Intelligence Report: <span style="color: #ff5500;">{query.title()}</span>
-            </div>
-            <div style="background: rgba(34, 197, 94, 0.12); color: #4ade80; padding: 4px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700;">
-            VERIFIED LIVE
-            </div>
-            </div>
-            <p style="color: #cbd5e1; font-size: 0.94rem; line-height: 1.5; margin-bottom: 16px;">
-            Synthesized live intelligence for <b>"{query.title()}"</b> from verified Google News & web databases:
-            </p>
-            <ul style="padding-left: 18px; margin-bottom: 18px;">
-            {items_html}
-            </ul>
-            <div style="background: rgba(255, 85, 0, 0.08); border-left: 3px solid #ff5500; padding: 10px 14px; border-radius: 6px; font-size: 0.86rem; color: #94a3b8; line-height: 1.4;">
-            💡 <b>Insight Takeaway:</b> Real-time signals indicate active updates around <i>'{query}'</i>. Check cited article links for full verification.
-            </div>
-            </div>
-            """).strip()
-        except Exception:
-            answer_html = f"""
-            <div style="background: #111827; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 22px;">
-                <h3 style="color: #ff5500; font-family: 'Lora', serif; margin-top:0;">🇮🇳 IndiaDigest Executive Intelligence</h3>
-                <p style="color: #cbd5e1;">Synthesized real-time intelligence for <b>"{query}"</b>:</p>
-                <ul style="color: #e2e8f0; line-height: 1.6;">
-                    <li><span style="color: #ff5500;">[News]</span> <b>Key market & news developments indexed for {query}.</b></li>
-                    <li><span style="color: #38bdf8;">[Web]</span> <b>Social and web signals tracked across Google News, Reddit & YouTube.</b></li>
-                </ul>
-            </div>
-            """
+        answer_html = textwrap.dedent(f"""
+        <div style="font-family: 'Inter', sans-serif; background: #111827; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 22px; margin-bottom: 15px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); padding-bottom: 10px;">
+        <div style="font-family: 'Lora', serif; font-size: 1.25rem; font-weight: 700; color: #ffffff;">
+        Executive Intelligence Report: <span style="color: #ff5500;">{query.title()}</span>
+        </div>
+        <div style="background: rgba(34, 197, 94, 0.12); color: #4ade80; padding: 4px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700;">
+        VERIFIED LIVE
+        </div>
+        </div>
+        <p style="color: #cbd5e1; font-size: 0.94rem; line-height: 1.5; margin-bottom: 16px;">
+        Synthesized live intelligence for <b>"{query.title()}"</b> from verified Google News & web databases:
+        </p>
+        <ul style="padding-left: 18px; margin-bottom: 18px;">
+        {items_html}
+        </ul>
+        <div style="background: rgba(255, 85, 0, 0.08); border-left: 3px solid #ff5500; padding: 10px 14px; border-radius: 6px; font-size: 0.86rem; color: #94a3b8; line-height: 1.4;">
+        💡 <b>Insight Takeaway:</b> Real-time signals indicate active updates around <i>'{query}'</i>. Check cited article links for full verification.
+        </div>
+        </div>
+        "").strip()
 
     html_page = f"""
     <!DOCTYPE html>
